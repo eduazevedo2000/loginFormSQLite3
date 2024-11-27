@@ -7,9 +7,10 @@ const db = new sqlite3.Database('users.db', (err) => {
   else console.log('connected to db')
 })
 
-app.get('/:username', (req, res) => {
-  let username = req.params['username']
-  let password = req.query
+app.use(express.json())
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body
 
   if (!username || !password) {
     return res.status(400).send({ message: 'username and password required' })
@@ -20,7 +21,6 @@ app.get('/:username', (req, res) => {
       if (err) {
         console.log('Error querying the database: ' + err.message)
       } else if (!row) {
-        console.log('Login successfull: ', row)
         res.status(404).send({ message: 'user not found' })
       } else if (row.password === password) {
         console.log('Login successfull: ', row)
@@ -32,7 +32,26 @@ app.get('/:username', (req, res) => {
   })
 })
 
-app.get('/:username/close', (req, res) => {
+app.post('/register', (req, res) => {
+  const { username, password } = req.body
+
+  if (!username || !password) {
+    return res.status(400).send({ message: 'username and password required' })
+  }
+  db.serialize(() => {
+    const sql = 'INSERT INTO user(username, password) VALUES (?, ?)'
+    db.get(sql, [username, password], (err) => {
+      if (err) {
+        console.log('Error inserting to database: ' + err.message)
+        res.send(err)
+      } else {
+        res.send({ message: `${username} added successfully` })
+      }
+    })
+  })
+})
+
+app.get('/login/close', (req, res) => {
   db.close((err) => {
     if (err) {
       console.log('Error closing the database: ' + err.message)
