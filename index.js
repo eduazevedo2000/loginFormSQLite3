@@ -59,14 +59,38 @@ app.post('/register', (req, res) => {
   })
 })
 
-app.get('/login/close', (req, res) => {
-  db.close((err) => {
-    if (err) {
-      console.log('Error closing the database: ' + err.message)
-    } else {
-      res.send('database connection closed')
-      console.log('database connection closed')
-    }
+app.post('/change_password', (req, res) => {
+  const { username, password } = req.body
+  if (!password) {
+    return res.status(400).send({ message: 'new password required' })
+  }
+  db.serialize(() => {
+    const check = 'SELECT * FROM user WHERE username = ?'
+    db.get(check, [username], (err, row) => {
+      if (err) {
+        res.status(500).send({ message: 'Database error', error: err.message })
+        return
+      }
+      if (!row) {
+        res.status(400).send({
+          message: 'username not found',
+        })
+        return
+      } else if (row.password === password) {
+        res.status(400).send({
+          message: 'new password must be diferent than current password',
+        })
+      } else {
+        const sql = 'UPDATE user SET password = ? WHERE username = ?'
+        db.get(sql, [password, username], (err, row) => {
+          if (err) {
+            console.log('Error querying the database: ' + err.message)
+            res.status(500).send('Error querying the database:' + err.message)
+          }
+          res.status(200).send({ message: 'password updated successfully' })
+        })
+      }
+    })
   })
 })
 
