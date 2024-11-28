@@ -39,13 +39,21 @@ app.post('/register', (req, res) => {
     return res.status(400).send({ message: 'username and password required' })
   }
   db.serialize(() => {
+    const check = 'SELECT * FROM user WHERE username = ?'
     const sql = 'INSERT INTO user(username, password) VALUES (?, ?)'
-    db.get(sql, [username, password], (err) => {
-      if (err) {
-        console.log('Error inserting to database: ' + err.message)
-        res.send(err)
+    db.get(check, [username], (err, row) => {
+      if (row.username === username) {
+        res.send({ message: 'user already exists' })
       } else {
-        res.send({ message: `${username} added successfully` })
+        db.get(sql, [username, password], (err) => {
+          if (err) {
+            console.log('Error inserting to database: ' + err.message)
+            res.send(err)
+          } else {
+            console.log(username)
+            res.send({ message: `${username} added successfully` })
+          }
+        })
       }
     })
   })
